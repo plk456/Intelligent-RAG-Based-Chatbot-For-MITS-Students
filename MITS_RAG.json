@@ -1,0 +1,274 @@
+{
+  "name": "MITS_RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        256
+      ],
+      "id": "b86fe898-f2c6-41bc-8c59-740529a4ff7a",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "n8n",
+          "mode": "list",
+          "cachedResultName": "n8n"
+        },
+        "options": {
+          "pineconeNamespace": "n8n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1,
+      "position": [
+        688,
+        352
+      ],
+      "id": "7536ebf9-f13a-4e73-abef-f4817853dde6",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "pncOFfzX3SYUh6im",
+          "name": "PineconeApi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        496,
+        128
+      ],
+      "id": "2254bd03-a28b-42d0-ba63-366f25f6c604",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gQQgNWuLWOLuUfzW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        656,
+        480
+      ],
+      "id": "85a2a88f-3d2d-4f74-b203-25039b371625",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "oCjI0cYDUBEBpHSa",
+          "name": "CohereApi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        384
+      ],
+      "id": "cf77ccb2-68a9-4c40-9ee4-41ed69b9f82d",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gQQgNWuLWOLuUfzW",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "n8n",
+        "description": "Returns documents related to mits.doc.pdf and mits.doc.doc, anything related to the college."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1,
+      "position": [
+        784,
+        192
+      ],
+      "id": "1897b30d-8c32-4462-8d55-03fc60780a0a",
+      "name": "MITS"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "=You are an AI MITS assistant specialized in retrieving and summarizing information only from the document mits.doc.pdf and mits.doc.doc . Your purpose is to help students get accurate, concise, and well-structured answers based on that document.\n\nInstructions:\n\nUse only the information retrieved from mits.doc.pdf and mits.doc.doc (the provided knowledge base).\n\nIf the answer is not explicitly available or unclear in the document, clearly state:\n\n“I don’t have enough information about that in the provided document.”\n\nNever fabricate or assume information beyond what’s in the source.\n\nKeep your tone helpful, factual, and academic.\n\nResponse Format:\n\nConcise Explanation:\n\nProvide a direct and clear answer in simple academic language.\n\nInclude relevant facts, definitions, or figures from mits.doc.pdf and mits.doc.doc.\n\nSource Indication:\n\nClearly mention the page number or section from which the information was retrieved (if available)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        624,
+        -32
+      ],
+      "id": "eabe0942-0e54-4d9d-a7d9-4937d10e5bee",
+      "name": "MITS AI Agent"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "762830e1-8bfa-4adb-b690-e22b687210da",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        -32
+      ],
+      "id": "f46cfc16-d832-4dd8-9578-0af9dd5d494d",
+      "name": "Webhook",
+      "webhookId": "762830e1-8bfa-4adb-b690-e22b687210da"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1040,
+        -32
+      ],
+      "id": "36036239-d788-48cd-a9a7-86317f1d45bb",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "MITS AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "MITS",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "MITS AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "MITS",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MITS": {
+      "ai_tool": [
+        [
+          {
+            "node": "MITS AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MITS AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MITS AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "sa9n8Ep2eEWY8Qa9"
+  },
+  "versionId": "e4e97835-301c-4479-9230-4c949d497f30",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "182135984ee12a2884ad52dff4896a2a73ff106b71d80e72bac952071fbd6716"
+  },
+  "id": "WEVfdcbMnbap5GKa",
+  "tags": []
+}

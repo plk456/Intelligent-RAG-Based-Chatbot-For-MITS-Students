@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>College Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="chatbot_mits_trail.css">
+</head>
+<body>
+  <div class="app" role="application" aria-label="College Chatbot">
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="logo">
+        <div class="dot">CS</div>
+        <div>
+          <div class="title">College Chatbot</div>
+        </div>
+      </div>
+
+      <div class="history" id="historyList" aria-live="polite"></div>
+
+      <div class="controls">
+        <button id="clearBtn">Clear</button>
+        <button id="exportBtn">Export</button>
+      </div>
+    </aside>
+
+    <main class="chat-area">
+      <div class="header">
+        <h2>Ask anything — start with your question</h2>
+        <div class="small">Connected to webhook</div>
+      </div>
+
+      <div class="messages" id="messages" role="log" aria-live="polite"></div>
+
+      <form class="composer" id="composer">
+        <div style="display:flex;flex-direction:column;flex:1">
+          <textarea id="input" placeholder="Type your question, paste notes, or use quick actions..." aria-label="Message"></textarea>
+          <div style="display:flex;justify-content:space-between;margin-top:8px;align-items:center">
+            <div class="file-wrap">
+              <label class="chip" for="fileInput">📎 Attach</label>
+              <input type="file" id="fileInput" accept=".txt,.md,.pdf,.png,.jpg,.jpeg">
+              <div id="attachedFile" class="small" style="margin-left:8px;color:var(--muted)"></div>
+            </div>
+            <div class="small">Local conversation stored</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+          <button type="submit" id="sendBtn">Send</button>
+          <button type="button" id="quickActionBtn" class="chip" title="Smart action">Smart</button>
+        </div>
+      </form>
+
+    </main>
+  </div>
+
+  <script src="chatbot_mits_trail.js"></script>
+<footer>
+    Made with ❤️ by Likith Kumar
+  </footer>
+</body>
+</html> 
