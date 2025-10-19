@@ -6,11 +6,11 @@
   <title>College Chatbot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="chatbot_mits_trail.css">
+  <link rel="stylesheet" href="chatbot_mits.css">
 </head>
 <body>
-  <div class="app" role="application" aria-label="College Chatbot">
-    <aside class="sidebar" aria-label="Sidebar">
+  <div class="app" role="application" aria-label="College Chatbot Interface">
+    <aside class="sidebar" aria-label="Conversation History and Controls">
       <div class="logo">
         <div class="dot">CS</div>
         <div>
@@ -18,11 +18,12 @@
         </div>
       </div>
 
+      <h3 class="history-heading">Conversation History</h3>
       <div class="history" id="historyList" aria-live="polite"></div>
 
       <div class="controls">
-        <button id="clearBtn">Clear</button>
-        <button id="exportBtn">Export</button>
+        <button id="clearBtn" aria-label="Clear all local conversation history">Clear</button>
+        <button id="exportBtn" aria-label="Export conversation to JSON file">Export</button>
       </div>
     </aside>
 
@@ -32,32 +33,32 @@
         <div class="small">Connected to webhook</div>
       </div>
 
-      <div class="messages" id="messages" role="log" aria-live="polite"></div>
+      <div class="messages" id="messages" role="region" aria-label="Conversation Messages" aria-live="polite"></div>
 
       <form class="composer" id="composer">
-        <div style="display:flex;flex-direction:column;flex:1">
-          <textarea id="input" placeholder="Type your question, paste notes, or use quick actions..." aria-label="Message"></textarea>
-          <div style="display:flex;justify-content:space-between;margin-top:8px;align-items:center">
+        <div class="input-wrap">
+          <textarea id="input" placeholder="Type your question, paste notes, or use quick actions..." aria-label="Message Input"></textarea>
+          <div class="composer-footer">
             <div class="file-wrap">
               <label class="chip" for="fileInput">📎 Attach</label>
               <input type="file" id="fileInput" accept=".txt,.md,.pdf,.png,.jpg,.jpeg">
-              <div id="attachedFile" class="small" style="margin-left:8px;color:var(--muted)"></div>
+              <div id="attachedFile" class="small attached-file-name"></div>
             </div>
             <div class="small">Local conversation stored</div>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-          <button type="submit" id="sendBtn">Send</button>
-          <button type="button" id="quickActionBtn" class="chip" title="Smart action">Smart</button>
+        <div class="action-buttons">
+          <button type="submit" id="sendBtn" aria-label="Send Message">Send</button>
+          <button type="button" id="quickActionBtn" class="chip" title="Smart action" aria-label="Apply Smart Action to Message">Smart</button>
         </div>
       </form>
 
     </main>
   </div>
 
-  <script src="chatbot_mits_trail.js"></script>
+  <script src="chatbot_mits.js"></script>
 <footer>
     Made with ❤️ by Likith Kumar
   </footer>
 </body>
-</html> 
+</html>
