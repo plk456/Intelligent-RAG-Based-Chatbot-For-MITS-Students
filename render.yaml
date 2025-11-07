@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: mits-chatbot-frontend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  - type: web
+    name: mits-chatbot-backend
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile.n8n
+    dockerContext: .
+    envVars:
+      - key: N8N_PORT
+        value: 10000

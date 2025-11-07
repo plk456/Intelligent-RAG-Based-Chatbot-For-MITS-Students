@@ -1,0 +1,11 @@
+FROM n8nio/n8n:latest
+
+# Copy workflow files
+COPY MITS_RAG.json /home/node/.n8n/workflows/
+COPY dataset/ /home/node/.n8n/data/
+
+# Expose port
+EXPOSE 5678
+
+# Start n8n
+CMD ["n8n"]
