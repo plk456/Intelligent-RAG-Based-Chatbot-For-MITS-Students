@@ -1,7 +1,8 @@
 // ----------------------
 // CONFIG
 // ----------------------
-const WEBHOOK_URL = "http://localhost:5678/webhook/762830e1-8bfa-4adb-b690-e22b687210da";
+// For Docker deployment, using backend service name
+const WEBHOOK_URL = "http://backend:5678/webhook/762830e1-8bfa-4adb-b690-e22b687210da";
 
 // ----------------------
 // Simple UI helpers

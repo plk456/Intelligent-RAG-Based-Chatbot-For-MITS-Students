@@ -1,0 +1,23 @@
+services:
+  frontend:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./template:/app/template
+    # For development, you might want to use the following instead:
+    # command: ["node", "server.js"]
+
+  backend:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_PORT=5678
+      # The WEBHOOK_URL is used by the frontend, not the backend
+    volumes:
+      - ./MITS_RAG.json:/home/node/.n8n/workflows/MITS_RAG.json
+      - ./home.txt:/home/node/.n8n/data/home.txt
+      - ./ai_ml_faculty.txt:/home/node/.n8n/data/ai_ml_faculty.txt
