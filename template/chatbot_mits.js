@@ -13,38 +13,80 @@ const inputEl = document.getElementById('input');
 const fileInput = document.getElementById('fileInput');
 const attachedFileEl = document.getElementById('attachedFile');
 
-let conversation = loadConversation();
+// Generate a unique user ID (in a real app, this would come from authentication)
+const userId = localStorage.getItem('userId') || (function() {
+  const id = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem('userId', id);
+  return id;
+})();
 
-function loadConversation(){
+let conversation = [];
+loadConversation();
+
+async function loadConversation(){
   try{
-    const raw = localStorage.getItem('college_chat_history_v1');
-    // FIX 1: If history exists, parse it.
-    if (raw) {
-      return JSON.parse(raw);
-    } 
-    // FIX 2: If no history exists, return an empty array, 
-    // preventing any default messages (like the webhook note or the starter message) from being auto-added.
-    return []; 
-
+    // Try to load conversation from MongoDB
+    const response = await fetch(`/api/conversations/${userId}`);
+    if (response.ok) {
+      const data = await response.json();
+      conversation = data.conversation || [];
+    } else {
+      // Fallback to localStorage if MongoDB is not available
+      const raw = localStorage.getItem('college_chat_history_v1');
+      if (raw) {
+        conversation = JSON.parse(raw);
+      } else {
+        conversation = [];
+      }
+    }
+    renderMessages();
   }catch(e){
-    console.error("Error loading conversation from localStorage:", e);
-    // Return empty array on error
-    return [];
+    console.error("Error loading conversation:", e);
+    // Fallback to localStorage on error
+    try {
+      const raw = localStorage.getItem('college_chat_history_v1');
+      conversation = raw ? JSON.parse(raw) : [];
+    } catch (e2) {
+      console.error("Error loading conversation from localStorage:", e2);
+      conversation = [];
+    }
+    renderMessages();
   }
 }
 
-function saveConversation(){
+async function saveConversation(){
   try {
+    // Save to MongoDB
+    const response = await fetch('/api/conversations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId: userId, conversation: conversation })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to save conversation to MongoDB');
+    }
+    
+    // Also save to localStorage as a backup
     localStorage.setItem('college_chat_history_v1', JSON.stringify(conversation));
     renderHistory();
   } catch(e) {
-    console.error("Error saving conversation to localStorage:", e);
+    console.error("Error saving conversation to MongoDB:", e);
+    // Fallback to localStorage only
+    try {
+      localStorage.setItem('college_chat_history_v1', JSON.stringify(conversation));
+      renderHistory();
+    } catch(e2) {
+      console.error("Error saving conversation to localStorage:", e2);
+    }
   }
 }
 
-function addMessage(role,text,meta){
+async function addMessage(role,text,meta){
   conversation.push({id:Date.now()+Math.random(),role,text,meta});
-  saveConversation();
+  await saveConversation();
   renderMessages();
 }
 
@@ -107,7 +149,8 @@ function sanitize(s){ const div = document.createElement('div'); div.textContent
 // ----------------------
 // Start UI
 // ----------------------
-renderMessages();
+// Load conversation from MongoDB when the page loads
+loadConversation();
 
 // file attach
 let attachedFile = null;
@@ -123,7 +166,7 @@ document.getElementById('composer').addEventListener('submit', async (e)=>{
   const text = inputEl.value.trim();
   if(!text && !attachedFile) return;
   
-  addMessage('user', text || ('[file] ' + (attachedFile ? attachedFile.name : '')));
+  await addMessage('user', text || ('[file] ' + (attachedFile ? attachedFile.name : '')));
   
   const payload = makePayload('message', text, attachedFile);
   const fileToSend = attachedFile; // Store reference to file before clearing
@@ -144,10 +187,10 @@ document.getElementById('quickActionBtn').addEventListener('click', ()=>{
 });
 
 // clear / export
-document.getElementById('clearBtn').addEventListener('click', ()=>{
-  if(!confirm('Clear local conversation? This cannot be undone.')) return; 
+document.getElementById('clearBtn').addEventListener('click', async ()=>{
+  if(!confirm('Clear conversation? This cannot be undone.')) return; 
   conversation = []; // Now, clearing results in an empty array
-  saveConversation();
+  await saveConversation();
   renderMessages();
 });
 
@@ -192,7 +235,7 @@ async function postToWebhook(jsonPayload, file){
 
     if(!resp.ok){
       const txt = await resp.text().catch(()=>null);
-      addMessage('assistant', `⚠️ Webhook returned HTTP ${resp.status}. ${txt ? 'Response: '+truncate(txt, 150) : 'No response body received.'}`);
+      await addMessage('assistant', `⚠️ Webhook returned HTTP ${resp.status}. ${txt ? 'Response: '+truncate(txt, 150) : 'No response body received.'}`);
       return;
     }
 
@@ -201,17 +244,17 @@ async function postToWebhook(jsonPayload, file){
     if(ct.includes('application/json')){
       data = await resp.json();
       const reply = data.reply || data.message || JSON.stringify(data);
-      addMessage('assistant', String(reply));
+      await addMessage('assistant', String(reply));
     } else {
       const text = await resp.text();
       const reply = text || 'Webhook received your message — no reply body returned.';
-      addMessage('assistant', String(reply));
+      await addMessage('assistant', String(reply));
     }
   } catch (err){
     console.error(err);
-    addMessage('assistant', `❌ Network error: ${err.message || err}. Possible causes: The webhook server is not running, CORS blocked the request, or the URL is incorrect.`);
+    await addMessage('assistant', `❌ Network error: ${err.message || err}. Possible causes: The webhook server is not running, CORS blocked the request, or the URL is incorrect.`);
   } finally {
-    hideAssistantTyping();
+    await hideAssistantTyping();
   }
 }
 
@@ -219,7 +262,7 @@ async function postToWebhook(jsonPayload, file){
 // Typing indicator
 // ----------------------
 let typingId = null;
-function showAssistantTyping(){
+async function showAssistantTyping(){
   const last = conversation[conversation.length-1];
   if(last && last.text === '⏳ Thinking...'){
     typingId = last.id; 
@@ -228,17 +271,17 @@ function showAssistantTyping(){
   
   if(typingId) return;
   typingId = Date.now();
-  addMessage('assistant','⏳ Thinking...');
+  await addMessage('assistant','⏳ Thinking...');
 }
 
-function hideAssistantTyping(){
+async function hideAssistantTyping(){
   if(!typingId) return;
   const last = conversation[conversation.length-1];
   if(last && last.text === '⏳ Thinking...'){
     conversation.splice(conversation.length-1,1);
   }
   typingId = null;
-  saveConversation();
+  await saveConversation();
   renderMessages();
 }
 
