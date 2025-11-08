@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm install --only=production
 
 # Copy all files
-COPY . .
+COPY .. .
 
 # Expose port
 EXPOSE 3000

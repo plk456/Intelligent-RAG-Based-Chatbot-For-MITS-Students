@@ -13,7 +13,7 @@ services:
     name: mits-chatbot-backend
     env: docker
     plan: free
-    dockerfilePath: Dockerfile.n8n
+    dockerfilePath: docker/Dockerfile.n8n
     dockerContext: .
     envVars:
       - key: N8N_PORT
