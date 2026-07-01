@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MITS AI Assistant - Chatbot</title>
+    <!-- Google Fonts: Inter and Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="chatbot_mits.css">
+</head>
+<body>
+    <!-- Verification Modal Overlay -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+            <!-- Gradient Header Banner -->
+            <div class="auth-header-banner">
+                <h2>Hi! 👋</h2>
+                <p>Your AI assistant is here to guide you through academic journey</p>
+            </div>
+            
+            <div class="auth-body">
+                <!-- Smart Guide Card -->
+                <div class="admission-guide-card">
+                    <div class="sparkle-icon">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2l2.4 4.8 5.3.8-3.8 3.7.9 5.3-4.8-2.5-4.8 2.5.9-5.3-3.8-3.7 5.3-.8L12 2zm-7 14l1.2 2.4 2.6.4-1.9 1.8.4 2.6-2.3-1.2-2.3 1.2.4-2.6-1.9-1.8 2.6-.4L5 16zm14-12l.6 1.2 1.3.2-1 1 .2 1.3-1.1-.6-1.1.6.2-1.3-1-1 1.3-.2L19 4z"/></svg>
+                    </div>
+                    <h3>Your Smart Admission Guide</h3>
+                    <p>Ask questions, get instant answers, or explore admissions details tailored to your needs - all powered by AI</p>
+                </div>
+
+                <!-- Interactive Form Container -->
+                <div class="auth-form-card">
+                    <!-- Step 1: Mobile Input -->
+                    <div class="auth-step" id="authStepMobile">
+                        <p class="auth-instruction">Just drop your <strong>mobile number</strong> below so I can guide you better</p>
+                        <div class="auth-input-wrapper">
+                            <input 
+                                type="tel" 
+                                id="authMobileInput" 
+                                placeholder="Enter Your Mobile Number" 
+                                pattern="[0-9]{10}"
+                                maxlength="10"
+                                required
+                            />
+                        </div>
+                        <button class="auth-action-btn" id="authSendBtn">
+                            Send Verification Code
+                        </button>
+                    </div>
+
+                    <!-- Step 2: OTP Input (hidden initially) -->
+                    <div class="auth-step hidden" id="authStepOtp">
+                        <p class="auth-instruction">Enter the <strong>4-digit code</strong> sent to your mobile number</p>
+                        <div class="auth-input-wrapper">
+                            <input 
+                                type="text" 
+                                id="authOtpInput" 
+                                placeholder="Enter 4-Digit OTP" 
+                                pattern="[0-9]{4}"
+                                maxlength="4"
+                                required
+                            />
+                        </div>
+                        <button class="auth-action-btn" id="authVerifyBtn">
+                            Verify & Start Chat
+                        </button>
+                        <button class="auth-back-link" id="authBackBtn">
+                            &larr; Change Mobile Number
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <!-- Premium black logo card -->
+                    <div class="logo-box">MITS</div>
+                    <div class="logo-details">
+                        <h1>MITS Assistant</h1>
+                        <span>Deemed to be University</span>
+                    </div>
+                </div>
+                <button class="close-sidebar-btn" id="closeSidebarBtn" aria-label="Close sidebar">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <div class="sidebar-scroll-content">
+                <!-- Info Card -->
+                <div class="info-card">
+                    <h3>About the University</h3>
+                    <p>Madanapalle Institute of Technology & Science (MITS) is a premier higher education institution established in 1998, recognized with a <strong>NAAC A+ grade</strong> and conferred the status of a <strong>Deemed to be University</strong> in 2025.</p>
+                </div>
+
+                <!-- Suggestions Panel -->
+                <div class="suggestions-panel">
+                    <h3>Explore Topics</h3>
+                    <div class="suggestions-grid">
+                        <button class="suggestion-chip" data-query="Tell me about MITS and its ranking.">
+                            🏫 About & Rankings
+                        </button>
+                        <button class="suggestion-chip" data-query="Who are the faculty members in the AI/ML department?">
+                            🧑‍🏫 AI/ML Faculty
+                        </button>
+                        <button class="suggestion-chip" data-query="What is the curriculum for 2nd Year AI & ML?">
+                            📚 B.Tech Syllabus
+                        </button>
+                        <button class="suggestion-chip" data-query="What are the recent workshops or hackathons?">
+                            💡 Events & MoUs
+                        </button>
+                        <button class="suggestion-chip" data-query="What student clubs are active at MITS?">
+                            🛸 Student Clubs
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Help / Guidelines -->
+                <div class="info-card secondary">
+                    <h3>How it Works</h3>
+                    <p>This assistant uses local RAG data to answer academic, administrative, and faculty queries. Ask away!</p>
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="user-status-card">
+                    <div class="avatar-circle">U</div>
+                    <div class="user-info">
+                        <span class="user-name" id="userNameText">Student Mode</span>
+                        <span class="user-id-badge" id="userIdText">ID: mits-student</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-container">
+            <!-- Topbar Header -->
+            <header class="chat-header">
+                <div class="header-left">
+                    <button class="menu-toggle-btn" id="menuToggleBtn" aria-label="Open sidebar">
+                        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    
+                    <div class="chat-title-info">
+                        <div class="bot-indicator">
+                            <span class="bot-name">MITS Support Bot</span>
+                            <span class="status-badge">
+                                <span class="status-dot"></span>
+                                Online
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <button class="action-btn" id="clearChatBtn" title="Clear Chat History">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        <span>Clear Chat</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Message List Area -->
+            <div class="chat-messages" id="chatMessages">
+                <!-- Welcome Message (Initial) -->
+                <div class="message-wrapper bot">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-bubble-container">
+                        <div class="message-bubble">
+                            <p>Hello! Welcome to the <strong>MITS Student Assistant</strong>. I am here to help you navigate campus life, faculty details, course curriculum, and college events.</p>
+                            <p>Here are some things you can ask me:</p>
+                            <ul>
+                                <li>"Who is the head of the AI/ML department?"</li>
+                                <li>"Tell me about the university vision and achievements."</li>
+                                <li>"What courses are offered in the B.Tech Networks curriculum?"</li>
+                            </ul>
+                        </div>
+                        <span class="message-time" id="welcomeTime">Just now</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator (Hidden by default) -->
+            <div class="typing-indicator-container" id="typingIndicator">
+                <div class="message-avatar">🤖</div>
+                <div class="typing-bubble">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+
+            <!-- Chat Input Form -->
+            <div class="chat-input-container">
+                <form id="chatForm" class="chat-input-form">
+                    <input 
+                        type="text" 
+                        id="chatInput" 
+                        placeholder="Type your message here..." 
+                        autocomplete="off" 
+                        required
+                    />
+                    <button type="submit" class="send-btn" id="sendBtn" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </form>
+                <div class="input-disclaimer">
+                    MITS AI Assistant operates on pre-verified university documentation (June 2026).
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Main JavaScript File -->
+    <script src="chatbot_mits.js"></script>
+</body>
+</html>
