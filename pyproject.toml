@@ -1,0 +1,16 @@
+[project]
+authors = [
+    { name = "PRODDUTURU LIKITH KUMAR", email = "[likithkumar784@gmail.com]" }
+]
+name = "intelligent-rag-based-chatbot-for-mits-students"
+version = "0.1.0"
+description = "This chatbot is a AI-powered chatbot designed to help students with their academic and campus-life queries in MITS college"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.25.0",
+    "psycopg[binary]>=3.2.0",
+    "pymongo>=4.0.0",
+    "python-dotenv>=1.0.0"
+]
