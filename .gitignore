@@ -1,3 +1,8 @@
 /__pycache__
 .venv/
 .env
+/APP/__pycache__/
+/data/__pycache__/
+mits_dataset/
+Server/__pycache__/
+database/__pycache__/

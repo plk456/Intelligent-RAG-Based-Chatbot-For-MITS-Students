@@ -357,7 +357,7 @@ function handleFormSubmit(e) {
 }
 
 // Process sending a user message
-function sendUserMessage(query) {
+async function sendUserMessage(query) {
     // Append user message
     const timestamp = new Date();
     appendMessage('user', query, timestamp);
@@ -369,24 +369,50 @@ function sendUserMessage(query) {
     typingIndicator.style.display = 'flex';
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-    // Simulate thinking delay beforebot response
-    const replyDelay = Math.max(500, Math.min(1500, query.length * 15));
-    setTimeout(async () => {
-        // Generate answer
-        const responseText = searchKnowledgeBase(query);
-        const botTimestamp = new Date();
-        
-        // Hide typing indicator and append bot reply
-        typingIndicator.style.display = 'none';
-        appendMessage('bot', responseText, botTimestamp);
+    const isFileProtocol = window.location.protocol === 'file:';
+    let responseText = '';
 
-        // Add to history
-        conversationHistory.push({ sender: 'bot', text: responseText, timestamp: botTimestamp.toISOString() });
+    if (isFileProtocol) {
+        // Fast local simulation mode if opened via file:// protocol
+        responseText = searchKnowledgeBase(query);
+    } else {
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query })
+            });
 
-        // Save conversation to DB/local storage
-        await saveConversation();
-    }, replyDelay);
+            if (response.ok) {
+                const data = await response.json();
+                responseText = data.answer;
+                
+                // Log sources in developer console for verification
+                if (data.sources && data.sources.length > 0) {
+                    console.log("[RAG Sources]:", data.sources);
+                }
+            } else {
+                throw new Error('API server returned error');
+            }
+        } catch (err) {
+            console.warn('RAG backend query failed, falling back to local offline search...', err);
+            responseText = searchKnowledgeBase(query);
+        }
+    }
+
+    const botTimestamp = new Date();
+    
+    // Hide typing indicator and append bot reply
+    typingIndicator.style.display = 'none';
+    appendMessage('bot', responseText, botTimestamp);
+
+    // Add to history
+    conversationHistory.push({ sender: 'bot', text: responseText, timestamp: botTimestamp.toISOString() });
+
+    // Save conversation to DB/local storage
+    await saveConversation();
 }
+
 
 // Load Conversation from API or Local Storage Fallback
 async function loadConversation() {
