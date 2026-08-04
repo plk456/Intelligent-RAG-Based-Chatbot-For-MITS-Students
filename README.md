@@ -1,6 +1,6 @@
 # Intelligent RAG-Based Chatbot For MITS College Students 
 
-#My project is smart enough to answer anything related to mits college.Useful for newly joining student who want to know about the college.
+# My project is smart enough to answer anything related to mits college.Useful for newly joining student who want to know about the college.
 
 An AI-powered, RAG (Retrieval-Augmented Generation) chatbot designed to assist students of Madanapalle Institute of Technology & Science (MITS) with academic rules, campus life, administration, admissions, and other college queries.
 
