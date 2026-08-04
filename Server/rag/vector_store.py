@@ -12,7 +12,10 @@ class QdrantVectorStore:
         # Determine database path
         current_dir = os.path.dirname(os.path.abspath(__file__))
         app_dir = os.path.dirname(current_dir)
-        db_dir = os.path.join(app_dir, "database", "qdrant_db")
+        if os.environ.get("VERCEL"):
+            db_dir = "/tmp/qdrant_db"
+        else:
+            db_dir = os.path.join(app_dir, "database", "qdrant_db")
         os.makedirs(db_dir, exist_ok=True)
         
         # Initialize client (uses local persistence)

@@ -27,7 +27,10 @@ class MITSQueryEngine:
 
         self.db_dir = os.path.join(root_dir, "database")
         self.bm25_data_path = os.path.join(self.db_dir, "bm25_chunks.json")
-        os.makedirs(self.db_dir, exist_ok=True)
+        try:
+            os.makedirs(self.db_dir, exist_ok=True)
+        except Exception as e:
+            print(f"[MITSQueryEngine] Warning: Could not create db_dir: {e}")
 
         # Components
         self.doc_processor = DocumentProcessor(self.dataset_dir)
@@ -40,6 +43,8 @@ class MITSQueryEngine:
 
     def should_reindex(self) -> bool:
         """Determines if the database needs to be reindexed based on dataset file updates."""
+        if os.environ.get("VERCEL"):
+            return False
         if not os.path.exists(self.bm25_data_path):
             return True
         

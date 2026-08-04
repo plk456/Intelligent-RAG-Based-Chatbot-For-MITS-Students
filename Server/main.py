@@ -47,7 +47,7 @@ class SendOtpRequest(BaseModel):
 class VerifyOtpRequest(BaseModel):
     userId: str
     mobileNumber: str = Field(..., pattern=r"^[0-9]{10}$")
-    otp: str = Field(..., pattern=r"^[0-9]{4}$")
+    otp: str = Field(..., pattern=r"^[0-9]+$")
 
 class ConversationSaveRequest(BaseModel):
     userId: str

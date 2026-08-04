@@ -166,8 +166,8 @@ async function handleSendOtp() {
 // Verify OTP handler
 async function handleVerifyOtp() {
     const otp = authOtpInput.value.trim();
-    if (!/^[0-9]{4}$/.test(otp)) {
-        showToast('Please enter a valid 4-digit verification code');
+    if (!/^[0-9]+$/.test(otp)) {
+        showToast('Please enter a valid verification code');
         return;
     }
 

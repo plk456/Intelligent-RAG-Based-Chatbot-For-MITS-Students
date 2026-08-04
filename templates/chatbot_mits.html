@@ -18,7 +18,7 @@
             <!-- Gradient Header Banner -->
             <div class="auth-header-banner">
                 <h2>Hi! 👋</h2>
-                <p>Your AI assistant is here to guide you through academic journey</p>
+                <h6>Just enter any random number as phone number and random OTP to enter into the chatbot.</h6>
             </div>
             
             <div class="auth-body">
@@ -35,12 +35,12 @@
                 <div class="auth-form-card">
                     <!-- Step 1: Mobile Input -->
                     <div class="auth-step" id="authStepMobile">
-                        <p class="auth-instruction">Just drop your <strong>mobile number</strong> below so I can guide you better</p>
+                        <p class="auth-instruction">Just enter <strong>any mobile number</strong> below to begin (no active verification required)</p>
                         <div class="auth-input-wrapper">
                             <input 
                                 type="tel" 
                                 id="authMobileInput" 
-                                placeholder="Enter Your Mobile Number" 
+                                placeholder="Enter 10-Digit Mobile Number" 
                                 pattern="[0-9]{10}"
                                 maxlength="10"
                                 required
@@ -53,14 +53,13 @@
 
                     <!-- Step 2: OTP Input (hidden initially) -->
                     <div class="auth-step hidden" id="authStepOtp">
-                        <p class="auth-instruction">Enter the <strong>4-digit code</strong> sent to your mobile number</p>
+                        <p class="auth-instruction">Enter <strong>any random OTP</strong> (e.g., 1234) to enter the chatbot</p>
                         <div class="auth-input-wrapper">
                             <input 
                                 type="text" 
                                 id="authOtpInput" 
-                                placeholder="Enter 4-Digit OTP" 
-                                pattern="[0-9]{4}"
-                                maxlength="4"
+                                placeholder="Enter OTP" 
+                                pattern="[0-9]+"
                                 required
                             />
                         </div>

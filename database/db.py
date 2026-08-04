@@ -10,10 +10,25 @@ dotenv_path = os.path.join(root_dir, ".env")
 load_dotenv(dotenv_path=dotenv_path)
 
 # SQLite database file path at the project root
-SQLITE_DB_PATH = os.path.join(root_dir, "mits_chatbot.db")
+if os.environ.get("VERCEL"):
+    SQLITE_DB_PATH = "/tmp/mits_chatbot.db"
+    bundle_db_path = os.path.join(root_dir, "mits_chatbot.db")
+    if os.path.exists(bundle_db_path) and not os.path.exists(SQLITE_DB_PATH):
+        import shutil
+        try:
+            shutil.copy2(bundle_db_path, SQLITE_DB_PATH)
+            print(f"[DATABASE] Copied bundle database to {SQLITE_DB_PATH}")
+        except Exception as e:
+            print(f"[DATABASE ERROR] Failed to copy SQLite DB to /tmp: {e}")
+else:
+    SQLITE_DB_PATH = os.path.join(root_dir, "mits_chatbot.db")
 
 def init_db():
     try:
+        # Ensure the directory for the database exists (e.g. if pointing to a subpath in /tmp)
+        db_dir_path = os.path.dirname(SQLITE_DB_PATH)
+        if db_dir_path:
+            os.makedirs(db_dir_path, exist_ok=True)
         conn = sqlite3.connect(SQLITE_DB_PATH)
         # Create users and conversations tables if not exists
         with conn:
