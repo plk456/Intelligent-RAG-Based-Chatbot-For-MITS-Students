@@ -4,7 +4,14 @@
 
 An AI-powered, RAG (Retrieval-Augmented Generation) chatbot designed to assist students of Madanapalle Institute of Technology & Science (MITS) with academic rules, campus life, administration, admissions, and other college queries.
 
-**LIVE DEMO:** [MITS Chatbot on Vercel](https://intelligent-rag-based-chatbot-for-m.vercel.app)
+
+[![Demo](https://intelligent-rag-based-chatbot-for-m.vercel.app)
+
+
+---
+
+## 📺 Live Demo
+[MITS Chatbot on Vercel](https://intelligent-rag-based-chatbot-for-m.vercel.app)
 
 
 ## Features
