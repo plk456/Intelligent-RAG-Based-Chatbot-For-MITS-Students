@@ -17,7 +17,7 @@ dotenv_path = os.path.join(ROOT_DIR, ".env")
 load_dotenv(dotenv_path=dotenv_path)
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from database.db import init_postgres, save_verified_user
+from database.db import init_postgres, save_verified_user, save_conversation, load_conversation
 from Server.sms import send_sms_otp
 from Server.rag.pipeline import MITSQueryEngine
 
@@ -152,15 +152,15 @@ def verify_otp(request: VerifyOtpRequest):
 
 # Save Conversation history
 @app.post("/api/conversations")
-def save_conversation(request: ConversationSaveRequest):
-    # MongoDB is commented out. Frontend will save to localStorage.
-    return {"message": "Conversation saved locally on client"}
+def save_user_conversation(request: ConversationSaveRequest):
+    result = save_conversation(request.userId, request.conversation)
+    return result
 
 # Load Conversation history
 @app.get("/api/conversations/{userId}")
-def load_conversation(userId: str):
-    # MongoDB is commented out. Frontend will load from localStorage.
-    return {"conversation": []}
+def load_user_conversation(userId: str):
+    convo = load_conversation(userId)
+    return {"conversation": convo}
 
 # Compute the absolute path to the templates directory (parent of current APP directory)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
