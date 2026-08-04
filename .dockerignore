@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+node_modules
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+db.sqlite3
+mits_chatbot.db
+Dockerfile
+.dockerignore
+README.md
