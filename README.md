@@ -65,3 +65,12 @@ An AI-powered, RAG (Retrieval-Augmented Generation) chatbot designed to assist s
 ```
 
 ---
+
+## 📜 License
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 📞 Contact
+* **Developer:** PRODDUTURU LIKITH KUMAR 
+* **Email:** Kumarlikith178@gmail.com
