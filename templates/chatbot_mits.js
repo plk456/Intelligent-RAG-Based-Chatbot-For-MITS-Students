@@ -201,9 +201,7 @@ async function handleVerifyOtp() {
         authVerifyBtn.disabled = false;
         authVerifyBtn.textContent = 'Verify & Start Chat';
         return;
-    }
-
-    try {
+    }    try {
         const response = await fetch('/api/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -216,6 +214,9 @@ async function handleVerifyOtp() {
             showToast('Mobile verified successfully!');
             localStorage.setItem('mits_chat_verified', 'true');
             localStorage.setItem('mits_chat_mobile', mobileNumber);
+            if (data.token) {
+                localStorage.setItem('mits_chat_jwt_token', data.token);
+            }
             
             // Unlocked state transition animation
             authOverlay.style.opacity = '0';
@@ -223,7 +224,7 @@ async function handleVerifyOtp() {
                 authOverlay.classList.add('hidden');
             }, 400);
         } else {
-            showToast(data.error || 'Invalid OTP code');
+            showToast(data.detail || data.error || 'Invalid OTP code');
         }
     } catch (err) {
         console.error('Error verifying OTP:', err);
@@ -356,7 +357,42 @@ function handleFormSubmit(e) {
     sendUserMessage(query);
 }
 
-// Process sending a user message
+// Helper to append a placeholder for streaming message
+function appendStreamingPlaceholder(sender, timestamp = new Date()) {
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('message-wrapper', sender);
+
+    // Avatar
+    const avatar = document.createElement('div');
+    avatar.classList.add('message-avatar');
+    avatar.textContent = sender === 'user' ? '👤' : '🤖';
+
+    // Bubble Container
+    const bubbleContainer = document.createElement('div');
+    bubbleContainer.classList.add('message-bubble-container');
+
+    // Bubble with cursor/dot
+    const bubble = document.createElement('div');
+    bubble.classList.add('message-bubble');
+    bubble.innerHTML = '<span class="dot-typing"></span>';
+
+    // Time
+    const time = document.createElement('span');
+    time.classList.add('message-time');
+    time.textContent = typeof timestamp === 'string' ? timestamp : formatTime(timestamp);
+
+    bubbleContainer.appendChild(bubble);
+    bubbleContainer.appendChild(time);
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubbleContainer);
+
+    chatMessages.appendChild(wrapper);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    return { bubble, time };
+}
+
+// Process sending a user message with Streaming
 async function sendUserMessage(query) {
     // Append user message
     const timestamp = new Date();
@@ -374,50 +410,122 @@ async function sendUserMessage(query) {
 
     if (isFileProtocol) {
         // Fast local simulation mode if opened via file:// protocol
-        responseText = searchKnowledgeBase(query);
+        await new Promise(resolve => setTimeout(resolve, 600));
+        typingIndicator.style.display = 'none';
+
+        const responseTextFull = searchKnowledgeBase(query);
+        const { bubble } = appendStreamingPlaceholder('bot');
+
+        // Simulate streaming locally for smooth visual flow
+        const words = responseTextFull.split(' ');
+        let accumulated = "";
+        for (let i = 0; i < words.length; i++) {
+            accumulated += (i === 0 ? "" : " ") + words[i];
+            bubble.innerHTML = formatMarkdownText(accumulated);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            await new Promise(resolve => setTimeout(resolve, 40));
+        }
+        responseText = responseTextFull;
     } else {
         try {
-            const response = await fetch('/api/chat', {
+            const response = await fetch('/api/chat-stream', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query })
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                responseText = data.answer;
-                
-                // Log sources in developer console for verification
-                if (data.sources && data.sources.length > 0) {
-                    console.log("[RAG Sources]:", data.sources);
-                }
-            } else {
+            if (!response.ok) {
                 throw new Error('API server returned error');
             }
+
+            typingIndicator.style.display = 'none';
+            const { bubble } = appendStreamingPlaceholder('bot');
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                
+                // Keep the last incomplete line in the buffer
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const parsed = JSON.parse(line);
+                        if (parsed.sources) {
+                            console.log("[RAG Sources]:", parsed.sources);
+                        } else if (parsed.text) {
+                            responseText += parsed.text;
+                            bubble.innerHTML = formatMarkdownText(responseText);
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
+                    } catch (e) {
+                        console.warn("Failed to parse stream line:", line, e);
+                    }
+                }
+            }
+
+            // Flush remaining buffer
+            if (buffer.trim()) {
+                try {
+                    const parsed = JSON.parse(buffer);
+                    if (parsed.text) {
+                        responseText += parsed.text;
+                        bubble.innerHTML = formatMarkdownText(responseText);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                } catch (e) {}
+            }
+
         } catch (err) {
-            console.warn('RAG backend query failed, falling back to local offline search...', err);
+            console.warn('RAG streaming failed, falling back to local offline search...', err);
+            typingIndicator.style.display = 'none';
             responseText = searchKnowledgeBase(query);
+            appendMessage('bot', responseText, new Date());
         }
     }
 
     const botTimestamp = new Date();
     
-    // Hide typing indicator and append bot reply
-    typingIndicator.style.display = 'none';
-    appendMessage('bot', responseText, botTimestamp);
-
     // Add to history
     conversationHistory.push({ sender: 'bot', text: responseText, timestamp: botTimestamp.toISOString() });
 
     // Save conversation to DB/local storage
     await saveConversation();
 }
-
+// Session Expiry Helper
+function handleAuthExpiry() {
+    localStorage.removeItem('mits_chat_verified');
+    localStorage.removeItem('mits_chat_jwt_token');
+    authOverlay.classList.remove('hidden');
+    authOverlay.style.opacity = '1';
+    authStepOtp.classList.add('hidden');
+    authStepMobile.classList.remove('hidden');
+    showToast('Session expired. Please verify with OTP again.');
+}
 
 // Load Conversation from API or Local Storage Fallback
 async function loadConversation() {
     try {
-        const response = await fetch(`/api/conversations/${userId}`);
+        const token = localStorage.getItem('mits_chat_jwt_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(`/api/conversations/${userId}`, { headers });
+        
+        if (response.status === 401 || response.status === 403) {
+            handleAuthExpiry();
+            return;
+        }
         if (!response.ok) throw new Error('Database server issue');
         
         const data = await response.json();
@@ -450,12 +558,22 @@ async function saveConversation() {
     localStorage.setItem(`mits_conversation_${userId}`, JSON.stringify(conversationHistory));
 
     try {
+        const token = localStorage.getItem('mits_chat_jwt_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch('/api/conversations', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({ userId: userId, conversation: conversationHistory })
         });
         
+        if (response.status === 401 || response.status === 403) {
+            handleAuthExpiry();
+            return;
+        }
         if (!response.ok) throw new Error('Database write error');
         console.log('Conversation backed up to server database');
     } catch (err) {
@@ -473,11 +591,22 @@ async function handleClearChat() {
 
         // Update database (save empty array)
         try {
-            await fetch('/api/conversations', {
+            const token = localStorage.getItem('mits_chat_jwt_token');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch('/api/conversations', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify({ userId: userId, conversation: [] })
             });
+
+            if (response.status === 401 || response.status === 403) {
+                handleAuthExpiry();
+                return;
+            }
         } catch (err) {
             console.warn('Failed to clear database conversation. Cleared locally.', err);
         }
@@ -491,7 +620,6 @@ async function handleClearChat() {
         showToast('Chat history cleared');
     }
 }
-
 // Render Conversation History from loaded array
 function renderHistory() {
     // Clear everything except welcome message

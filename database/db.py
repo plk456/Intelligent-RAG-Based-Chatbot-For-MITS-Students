@@ -2,12 +2,31 @@ import os
 import sqlite3
 from datetime import datetime
 from dotenv import load_dotenv
+from cryptography.fernet import Fernet
 
 # Load env variables from the absolute root directory path
 db_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(db_dir)
 dotenv_path = os.path.join(root_dir, ".env")
 load_dotenv(dotenv_path=dotenv_path)
+
+# Encryption Configuration
+DB_ENCRYPTION_KEY = os.getenv("DB_ENCRYPTION_KEY", "j110dbqbiPKn-l7wqvyeGlE-eW_SD0Yn5d0wo77r2Ls=")
+cipher = Fernet(DB_ENCRYPTION_KEY.encode() if isinstance(DB_ENCRYPTION_KEY, str) else DB_ENCRYPTION_KEY)
+
+def encrypt_mobile(mobile: str) -> str:
+    if not mobile:
+        return mobile
+    return cipher.encrypt(mobile.encode()).decode()
+
+def decrypt_mobile(encrypted_mobile: str) -> str:
+    if not encrypted_mobile:
+        return encrypted_mobile
+    try:
+        return cipher.decrypt(encrypted_mobile.encode()).decode()
+    except Exception as e:
+        print(f"[DECRYPTION ERROR] Failed to decrypt: {e}")
+        return encrypted_mobile
 
 # SQLite database file path at the project root
 if os.environ.get("VERCEL"):
@@ -60,6 +79,7 @@ init_postgres = init_db
 # Save verified user details
 def save_verified_user(user_id: str, mobile_number: str) -> dict:
     try:
+        encrypted_mobile = encrypt_mobile(mobile_number)
         conn = sqlite3.connect(SQLITE_DB_PATH)
         with conn:
             conn.execute("""
@@ -67,9 +87,9 @@ def save_verified_user(user_id: str, mobile_number: str) -> dict:
                 VALUES (?, ?, 1)
                 ON CONFLICT(user_id)
                 DO UPDATE SET mobile_number = excluded.mobile_number, verified = 1;
-            """, (user_id, mobile_number))
+            """, (user_id, encrypted_mobile))
         conn.close()
-        print(f"[DATABASE] Saved verified user {user_id} with mobile {mobile_number} to SQLite")
+        print(f"[DATABASE] Saved verified user {user_id} (mobile encrypted) to SQLite")
         return {"success": True, "db": "sqlite"}
     except Exception as e:
         print(f"[DATABASE ERROR] Failed to write to SQLite: {e}")

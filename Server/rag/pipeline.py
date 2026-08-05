@@ -12,7 +12,7 @@ from Server.rag.document_processor import DocumentProcessor
 from Server.rag.vector_store import QdrantVectorStore
 from Server.rag.bm25_retriever import BM25Retriever
 from Server.rag.hybrid_searcher import HybridSearcher
-from Server.rag.generator import GeminiGenerator
+from Server.rag.streaming import GeminiGenerator
 
 class MITSQueryEngine:
     def __init__(self, dataset_dir: str = None):
@@ -135,3 +135,31 @@ class MITSQueryEngine:
         answer = self.generator.generate_response(user_query, contexts)
         
         return answer, contexts
+
+    def query_stream(self, user_query: str):
+        if not self.is_initialized:
+            success = self.initialize_system()
+            if not success:
+                yield json.dumps({"error": "RAG system initialization failed."}) + "\n"
+                return
+
+        # Perform Hybrid Search
+        contexts = self.hybrid_searcher.search(user_query, top_k=5)
+        
+        # Format sources
+        sources = [
+            {"source": ctx["metadata"]["source"], "text": ctx["text"][:200] + "..."}
+            for ctx in contexts
+        ]
+        
+        # Yield metadata first (sources)
+        yield json.dumps({"sources": sources}) + "\n"
+
+        if not contexts:
+            yield json.dumps({"text": "I couldn't find any relevant information in the MITS database regarding your query."}) + "\n"
+            return
+
+        # Generate stream chunks
+        for chunk in self.generator.generate_response_stream(user_query, contexts):
+            yield json.dumps({"text": chunk}) + "\n"
+

@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, Body
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Body, Depends
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import random
@@ -8,6 +9,8 @@ import time
 import os
 import json
 import sys
+from datetime import datetime, timedelta
+import jwt
 from dotenv import load_dotenv
 
 # Load env variables from the absolute root directory path
@@ -21,6 +24,29 @@ from database.db import init_postgres, save_verified_user, save_conversation, lo
 from Server.sms import send_sms_otp
 from Server.rag.pipeline import MITSQueryEngine
 
+# JWT configuration
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "mits_super_secret_key_1234567890_dev_only")
+JWT_ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+security = HTTPBearer()
+
+def create_access_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+from Server.redis_client import track_question, get_frequent_questions_list, redis_client
 
 # Initialize PostgreSQL database
 init_postgres()
@@ -71,6 +97,9 @@ def get_health():
 @app.post("/api/chat")
 def chat(request: ChatRequest):
     try:
+        # Track the question in Redis
+        track_question(request.query)
+
         answer, contexts = query_engine.query(request.query)
         sources = [
             {"source": ctx["metadata"]["source"], "text": ctx["text"][:200] + "..."}
@@ -80,6 +109,31 @@ def chat(request: ChatRequest):
             "answer": answer,
             "sources": sources
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Streaming Chat Endpoint
+@app.post("/api/chat-stream")
+def chat_stream(request: ChatRequest):
+    try:
+        # Track the question in Redis
+        track_question(request.query)
+        
+        return StreamingResponse(
+            query_engine.query_stream(request.query), 
+            media_type="text/event-stream"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Frequent Questions Endpoint
+@app.get("/api/frequent-questions")
+def get_frequent_questions(limit: int = 10):
+    if redis_client is None:
+        return {"success": False, "message": "Redis tracking is currently offline", "questions": []}
+    try:
+        questions = get_frequent_questions_list(limit)
+        return {"success": True, "questions": questions}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -139,10 +193,13 @@ def verify_otp(request: VerifyOtpRequest):
     db_result = save_verified_user(user_id, mobile_number)
     
     if db_result.get("success"):
+        # Generate JWT access token
+        token = create_access_token({"userId": user_id, "mobileNumber": mobile_number})
         return {
             "success": True,
             "message": "Mobile number verified and saved successfully",
-            "storage": db_result.get("db")
+            "storage": db_result.get("db"),
+            "token": token
         }
     else:
         raise HTTPException(
@@ -152,13 +209,17 @@ def verify_otp(request: VerifyOtpRequest):
 
 # Save Conversation history
 @app.post("/api/conversations")
-def save_user_conversation(request: ConversationSaveRequest):
+def save_user_conversation(request: ConversationSaveRequest, current_user: dict = Depends(verify_token)):
+    if current_user.get("userId") != request.userId:
+        raise HTTPException(status_code=403, detail="Not authorized to access this conversation")
     result = save_conversation(request.userId, request.conversation)
     return result
 
 # Load Conversation history
 @app.get("/api/conversations/{userId}")
-def load_user_conversation(userId: str):
+def load_user_conversation(userId: str, current_user: dict = Depends(verify_token)):
+    if current_user.get("userId") != userId:
+        raise HTTPException(status_code=403, detail="Not authorized to access this conversation")
     convo = load_conversation(userId)
     return {"conversation": convo}
 
