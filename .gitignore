@@ -6,3 +6,4 @@
 mits_dataset/
 Server/__pycache__/
 database/__pycache__/
+.codex/

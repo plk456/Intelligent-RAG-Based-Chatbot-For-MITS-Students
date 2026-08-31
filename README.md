@@ -18,6 +18,7 @@ An AI-powered, RAG (Retrieval-Augmented Generation) chatbot designed to assist s
 - **Conversation History**: Auto-saves and loads session conversations locally or to PostgreSQL/SQLite, letting students pick up where they left off.
 - **Automatic Reindexing**: Detects updates to source text files in the dataset folder on startup and automatically runs re-indexing. Also supports manual reindexing via API.
 - **Modern UI**: A responsive, premium web interface containing smooth animations, chat bubbles, and instant visual sources/citations for every answer.
+- **Rate and Request Limiting**: Per-route request throttling plus request body size limits to protect the chat, OTP, and reindex endpoints.
 
 ---
 
@@ -32,6 +33,19 @@ An AI-powered, RAG (Retrieval-Augmented Generation) chatbot designed to assist s
   - Sparse Retrieval: BM25 (using `rank-bm25`).
 - **Database**: SQLite (local) and PostgreSQL support for storing conversation histories and verified user details.
 - **Containerization**: Docker & Docker Compose.
+
+### Request Limits
+
+The API now applies route-specific limits. The defaults are:
+
+- `POST /api/chat`: 20 requests per minute, max 8 KB body
+- `POST /api/chat-stream`: 15 requests per minute, max 8 KB body
+- `POST /api/send-otp`: 5 requests per minute, max 4 KB body
+- `POST /api/verify-otp`: 5 requests per minute, max 4 KB body
+- `POST /api/reindex`: 2 requests per hour, max 4 KB body
+- `POST /api/conversations`: 30 requests per minute, max 256 KB body
+
+You can override these with environment variables such as `CHAT_RATE_LIMIT_REQUESTS`, `CHAT_RATE_LIMIT_WINDOW_SECONDS`, or `DEFAULT_REQUEST_BODY_LIMIT_BYTES`.
 
 ---
 

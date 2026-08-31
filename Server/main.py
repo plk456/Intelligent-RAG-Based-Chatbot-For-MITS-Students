@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException, Body, Depends
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Body, Depends, Request
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -23,6 +23,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database.db import init_postgres, save_verified_user, save_conversation, load_conversation
 from Server.sms import send_sms_otp
 from Server.rag.pipeline import MITSQueryEngine
+from Server.rate_limiter import (
+    check_rate_limit,
+    get_client_identifier,
+    get_rate_limit_rule,
+    get_request_body_limit,
+)
 
 # JWT configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "mits_super_secret_key_1234567890_dev_only")
@@ -57,6 +63,56 @@ query_engine = MITSQueryEngine()
 # Setup FastAPI App
 app = FastAPI(title="MITS Chatbot API", description="FastAPI Server for MITS Student Assistant")
 
+
+@app.middleware("http")
+async def rate_limit_and_request_size_guard(request: Request, call_next):
+    path = request.url.path
+
+    # Keep public pages and static assets unrestricted.
+    if not path.startswith("/api/"):
+        return await call_next(request)
+
+    max_body_bytes = get_request_body_limit(path)
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) > max_body_bytes:
+                return JSONResponse(
+                    status_code=413,
+                    content={
+                        "detail": (
+                            f"Request body too large. Maximum allowed is {max_body_bytes} bytes."
+                        )
+                    },
+                )
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Invalid Content-Length header."},
+            )
+
+    rule = get_rate_limit_rule(path)
+    allowed, retry_after, remaining = check_rate_limit(path, get_client_identifier(request))
+    if not allowed:
+        response = JSONResponse(
+            status_code=429,
+            content={
+                "detail": "Rate limit exceeded. Please slow down and try again later.",
+                "retry_after_seconds": retry_after,
+            },
+        )
+        response.headers["Retry-After"] = str(retry_after)
+        response.headers["X-RateLimit-Limit"] = str(rule.requests)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        response.headers["X-RateLimit-Window-Seconds"] = str(rule.window_seconds)
+        return response
+
+    response = await call_next(request)
+    response.headers["X-RateLimit-Limit"] = str(rule.requests)
+    response.headers["X-RateLimit-Remaining"] = str(remaining)
+    response.headers["X-RateLimit-Window-Seconds"] = str(rule.window_seconds)
+    return response
+
 # Initialize RAG index on startup
 @app.on_event("startup")
 def startup_event():
@@ -73,14 +129,14 @@ class SendOtpRequest(BaseModel):
 class VerifyOtpRequest(BaseModel):
     userId: str
     mobileNumber: str = Field(..., pattern=r"^[0-9]{10}$")
-    otp: str = Field(..., pattern=r"^[0-9]+$")
+    otp: str = Field(..., pattern=r"^[0-9]{4}$")
 
 class ConversationSaveRequest(BaseModel):
     userId: str
     conversation: List[Dict[str, Any]]
 
 class ChatRequest(BaseModel):
-    query: str
+    query: str = Field(..., min_length=1, max_length=2000)
 
 
 
